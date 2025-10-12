@@ -1,124 +1,166 @@
-import re
-import pdfplumber
-import pytesseract
 from PIL import Image
+import pytesseract
+import pdfplumber
 from typing import Dict, Optional
+from pathlib import Path
+import re
+
+
+class ExtractorError(Exception):
+    """Exceção base para erros do extrator"""
+    pass
+
+
+class FileNotFoundError(ExtractorError):
+    """Arquivo não encontrado"""
+    pass
+
+
+class UnsupportedFileTypeError(ExtractorError):
+    """Tipo de arquivo não suportado"""
+    pass
+
+
+class ProcessingError(ExtractorError):
+    """Erro durante o processamento do arquivo"""
+    pass
+
+
+class ExtractorConfig:
+    """Configurações para o extrator de dados NFSe"""
+    CNPJ_PRESTADOR = r'\d{2}\.\d{3}\.\d{3}/\d{4}-\d{2}'
+    RAZAO_SOCIAL_PRESTADOR = r'Razão Social:\s*(.+?)(?:\n|$)'
+    PRESTADOR_START = r'Dados do Prestador'
+    PRESTADOR_END = r'Dados do Tomador'
+    OCR_LANG = 'por'
+
+
+class Reader:
+    """Classe base para leitores de arquivo"""
+    def read(self, file_path: str) -> str:
+        raise NotImplementedError("O método read() deve ser implementado")
+
+
+class PDFReader(Reader):
+    """Leitor para arquivos PDF usando pdfplumber"""
+    
+    def read(self, file_path: str) -> str:
+        try:
+            if not Path(file_path).exists():
+                raise FileNotFoundError(f"Arquivo PDF não encontrado: {file_path}")
+
+            with pdfplumber.open(file_path) as pdf:
+                if not pdf.pages:
+                    raise ProcessingError("PDF não contém páginas válidas")
+                
+                full_text = "\n".join(page.extract_text() for page in pdf.pages if page.extract_text())
+                
+                if not full_text.strip():
+                    raise ProcessingError("Não foi possível extrair texto do PDF (pode ser um PDF de imagem)")
+                
+                return full_text
+
+        except pdfplumber.PDFSyntaxError as e:
+            raise ProcessingError(f"Arquivo PDF corrompido ou com sintaxe inválida: {e}")
+        except PermissionError:
+            raise ProcessingError(f"Sem permissão para ler o arquivo: {file_path}")
+        except Exception as e:
+            if isinstance(e, ExtractorError):
+                raise
+            raise ProcessingError(f"Erro inesperado ao processar o PDF: {e}")
+
+
+class ImageReader(Reader):
+    """Leitor para arquivos de imagem usando Tesseract OCR"""
+    
+    def read(self, file_path: str) -> str:
+        try:
+            if not Path(file_path).exists():
+                raise FileNotFoundError(f"Arquivo de imagem não encontrado: {file_path}")
+
+            image = Image.open(file_path)
+            image.verify()
+            image = Image.open(file_path)
+
+            extracted_text = pytesseract.image_to_string(image, lang=ExtractorConfig.OCR_LANG)
+
+            if not extracted_text.strip():
+                raise ProcessingError("Não foi possível extrair texto da imagem")
+
+            return extracted_text
+        except pytesseract.TesseractNotFoundError:
+            raise ProcessingError("Tesseract OCR não está instalado ou não se encontra no PATH do sistema.")
+        except PermissionError:
+            raise ProcessingError(f"Sem permissão para ler o arquivo: {file_path}")
+        except Exception as e:
+            if isinstance(e, ExtractorError):
+                raise
+            raise ProcessingError(f"Arquivo não é uma imagem válida ou ocorreu um erro no OCR: {e}")
 
 
 class NFSeExtractor:
-    """Classe para extração de CNPJ e Razão Social de documentos NFSe"""
+    """Extrator de dados de NFSe a partir de uma string de texto"""
     
-    # XX.XXX.XXX/XXXX-XX
-    CNPJ_PATTERN = r'\d{2}\.\d{3}\.\d{3}/\d{4}-\d{2}'
+    def __init__(self, config: ExtractorConfig = None):
+        self.config = config or ExtractorConfig()
     
-    def __init__(self):
-        self.text = ""
-    
-    def extract_from_pdf(self, pdf_path: str) -> Dict[str, Optional[str]]:
-        """Extrai todo o texto do PDF."""
-        try:
-            with pdfplumber.open(pdf_path) as pdf:
-                full_text = ""
-                for page in pdf.pages:
-                    full_text += page.extract_text() + "\n"
-                
-                self.text = full_text
-                return self._extract_data()
-        except Exception as e:
-            raise Exception(f"Erro ao processar PDF: {str(e)}")
-    
-    def extract_from_image(self, image_path: str) -> Dict[str, Optional[str]]:
-        """Extrai todo o texto da imagem usando OCR para conversão."""
-        try:
-            image = Image.open(image_path)
-            self.text = pytesseract.image_to_string(image, lang='por')
-            return self._extract_data()
-        except Exception as e:
-            raise Exception(f"Erro ao processar imagem: {str(e)}")
-    
-    def _extract_data(self) -> Dict[str, Optional[str]]:
-        """Extrai CNPJ e Razão Social do texto extraído (normalizando e filtrando)."""
-        
-        normalized_text = re.sub(r'\s+', ' ', self.text)
-        
-        cnpj_prestador = self._extract_cnpj_prestador(normalized_text)
-        nome_prestador = self._extract_razao_social(normalized_text)
+    def extract_from_text(self, text: str) -> Dict[str, Optional[str]]:
+        """
+        Extrai CNPJ e Razão Social do texto da NFSe.
+        Este é o método público principal da classe.
+        """
+        prestador_section = self._isolate_prestador_section(text)
         
         return {
-            "cnpj_prestador": cnpj_prestador,
-            "nome_prestador": nome_prestador
+            "cnpj_prestador": self._extract_cnpj(prestador_section),
+            "nome_prestador": self._extract_razao_social(prestador_section)
         }
     
-    def _extract_cnpj_prestador(self, text: str) -> Optional[str]:
-        """Extrai o primeiro CNPJ encontrado após a seção "Dados do Prestador de Serviços"."""
-
-        cnpjs = re.findall(self.CNPJ_PATTERN, text)
+    def _isolate_prestador_section(self, text: str) -> str:
+        """Isola a seção do prestador do texto completo para uma busca mais precisa."""
+        start_match = re.search(self.config.PRESTADOR_START, text, re.IGNORECASE)
+        if not start_match:
+            return text
         
-        if not cnpjs:
-            return None
+        text_after_start = text[start_match.end():]
+        end_match = re.search(self.config.PRESTADOR_END, text_after_start, re.IGNORECASE)
         
-        prestador_match = re.search(
-            r'Dados do Prestador de Servi[çc]os',
-            text,
-            re.IGNORECASE
-        )
+        if end_match:
+            return text_after_start[:end_match.start()]
         
-        if prestador_match:
-            text_after_prestador = text[prestador_match.end():]
-            cnpj_match = re.search(self.CNPJ_PATTERN, text_after_prestador)
-            
-            if cnpj_match: return cnpj_match.group(0)
-        
-        return cnpjs[0] if cnpjs else None
+        return text_after_start
+    
+    def _extract_cnpj(self, text: str) -> Optional[str]:
+        """Extrai o primeiro CNPJ encontrado no texto fornecido."""
+        match = re.search(self.config.CNPJ_PRESTADOR, text)
+        return match.group(0) if match else None
     
     def _extract_razao_social(self, text: str) -> Optional[str]:
-        """Extrai a Razão Social buscando padrões como "Razão Social: NOME" na seção do prestador."""
-        
-        prestador_match = re.search(
-            r'Dados do Prestador de Servi[çc]os',
-            text,
-            re.IGNORECASE
-        )
-        
-        if not prestador_match: return None
-        
-        text_after_prestador = text[prestador_match.end():]
-        
-        # Limitar a busca
-        next_section_match = re.search(
-            r'Dados do Tomador|Discrimina[çc][ãa]o dos Servi[çc]os',
-            text_after_prestador,
-            re.IGNORECASE
-        )
-        
-        if next_section_match: text_after_prestador = text_after_prestador[:next_section_match.start()]
-        
-        razao_match = re.search(
-            r'Raz[ãa]o Social:?\s*([A-ZÀÁÂÃÄÅÇÈÉÊËÌÍÎÏÑÒÓÔÕÖÙÚÛÜ\s\.]+?)(?:\s+Nome Fantasia|\s+CNPJ|\s+Inscri[çc][ãa]o)',
-            text_after_prestador,
-            re.IGNORECASE
-        )
-        
-        if razao_match:
-            razao_social = razao_match.group(1).strip()
-            razao_social = re.sub(r'\s+', ' ', razao_social)
-            return razao_social
-        
-        return None
-    
-    def get_raw_text(self) -> str:
-        return self.text
+        """Extrai a Razão Social do texto fornecido."""
+        match = re.search(self.config.RAZAO_SOCIAL_PRESTADOR, text)
+        return match.group(1).strip() if match else None
 
 
-def extract_nfse_data(file_path: str, file_type: str = 'pdf') -> Dict[str, Optional[str]]:
-    """Extrai o tipo de arquivo e chama o método apropriado."""
+def get_reader(file_type: str) -> Reader:
+    """Factory que retorna o leitor apropriado para o tipo de arquivo."""
+    file_type_lower = file_type.lower()
     
-    extractor = NFSeExtractor()
-    
-    if file_type.lower() == 'pdf':
-        return extractor.extract_from_pdf(file_path)
-    elif file_type.lower() in ['image', 'img', 'png', 'jpg', 'jpeg']:
-        return extractor.extract_from_image(file_path)
-    else:
-        raise ValueError(f"Tipo de arquivo não suportado: {file_type}")
+    if file_type_lower == 'pdf':
+        return PDFReader()
+    if file_type_lower == 'image':
+        return ImageReader()
+    raise UnsupportedFileTypeError(f"Tipo de arquivo não suportado: {file_type}")
 
+
+def extract_nfse_data(file_path_str: str, file_type: str) -> Dict[str, Optional[str]]:
+    """
+    Orquestra o processo de extração de dados de um arquivo NFSe.
+    """
+    file_path = Path(file_path_str)
+    if not file_path.exists():
+        raise FileNotFoundError(f"Arquivo não encontrado: {file_path_str}")
+
+    reader = get_reader(file_type)
+    raw_text = reader.read(str(file_path))
+    data_extractor = NFSeExtractor()
+    return data_extractor.extract_from_text(raw_text)
