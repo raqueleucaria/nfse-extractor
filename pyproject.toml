@@ -1,0 +1,92 @@
+[project]
+name = "nfse_project"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "raqueleucaria"}
+]
+readme = "README.md"
+packages = [
+    { include = "extractor" },
+    { include = "nfse_project" }
+]
+requires-python = ">=3.12,<4.0"
+dependencies = [
+    "django (>=5.2.7,<6.0.0)",
+    "pdfplumber (>=0.11.7,<0.12.0)",
+    "pytesseract (>=0.3.13,<0.4.0)",
+    "pillow (>=11.3.0,<12.0.0)",
+    "taskipy (>=1.14.1,<2.0.0)"
+]
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "nfse_project.settings"
+python_files = ["tests.py", "test_*.py", "*_tests.py"]
+
+[tool.coverage.run]
+source = ["."]
+omit = [
+    "manage.py",
+    "*/migrations/*",
+    "*/settings.py",
+    "*/asgi.py",
+    "*/wsgi.py",
+    "*/venv/*",
+    "*/.venv/*",
+    "*/tests/*",
+    "*/__pycache__/*",
+    "__init__.py",
+    "extract_cli.py"
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:"
+]
+
+[tool.ruff]
+line-length = 83
+extend-exclude = [
+    'migrations',
+    'settings.py',
+    'manage.py',
+    'asgi.py',
+    'wsgi.py',
+    'extract_cli.py'
+]
+
+[tool.ruff.lint]
+preview = true
+select = ['I', 'F', 'E', 'W', 'PL', 'PT', 'DJ']
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.ruff.format]
+preview = true
+quote-style = 'single'
+
+[tool.taskipy.tasks]
+lint = 'ruff check . ; ruff check . --diff'
+test = 'pytest -s -x --cov=. --cov-report=term-missing -vv'
+post_test = 'coverage html'
+format = 'ruff check . --fix ; ruff format'
+run = "python manage.py runserver"
+migrate = "python manage.py migrate"
+cli = "python extract_cli.py"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.4.2"
+pytest-mock = "^3.15.1"
+pytest-django = "^4.11.1"
+pytest-cov = "^6.0.0"
+coverage = "^7.10.7"
+ruff = "^0.14.0"
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["PLR6301"]
