@@ -4,6 +4,7 @@ from typing import Dict, Optional
 
 import pdfplumber
 import pytesseract
+from pdfminer.pdfparser import PDFSyntaxError
 from PIL import Image
 
 
@@ -36,7 +37,7 @@ class ExtractorConfig:
 
     CNPJ_PRESTADOR = r'\d{2}\.\d{3}\.\d{3}/\d{4}-\d{2}'
     RAZAO_SOCIAL_PRESTADOR = r'Razão Social:\s*(.+?)(?:\n|$)'
-    PRESTADOR_START = r'Dados do Prestador'
+    PRESTADOR_START = r'Dados do Prestador de Serviços'
     PRESTADOR_END = r'Dados do Tomador'
     OCR_LANG = 'por'
 
@@ -56,9 +57,7 @@ class PDFReader(Reader):
     def read(file_path: str) -> str:
         try:
             if not Path(file_path).exists():
-                raise FileNotFoundError(
-                    f'Arquivo PDF não encontrado: {file_path}'
-                )
+                raise FileNotFoundError(f'Arquivo PDF não encontrado: {file_path}')
 
             with pdfplumber.open(file_path) as pdf:
                 if not pdf.pages:
@@ -75,14 +74,12 @@ class PDFReader(Reader):
 
                 return full_text
 
-        except pdfplumber.PDFSyntaxError as e:
+        except PDFSyntaxError as e:
             raise ProcessingError(
                 f'Arquivo PDF corrompido ou com sintaxe inválida: {e}'
             )
         except PermissionError:
-            raise ProcessingError(
-                f'Sem permissão para ler o arquivo: {file_path}'
-            )
+            raise ProcessingError(f'Sem permissão para ler o arquivo: {file_path}')
         except Exception as e:
             if isinstance(e, ExtractorError):
                 raise
@@ -117,9 +114,7 @@ class ImageReader(Reader):
                 'Tesseract OCR não instalado ou presente no PATH do sistema.'
             )
         except PermissionError:
-            raise ProcessingError(
-                f'Sem permissão para ler o arquivo: {file_path}'
-            )
+            raise ProcessingError(f'Sem permissão para ler o arquivo: {file_path}')
         except Exception as e:
             if isinstance(e, ExtractorError):
                 raise
