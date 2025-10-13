@@ -20,8 +20,12 @@ dependencies = [
 ]
 
 [tool.ruff]
-line-length = 79
-extend-exclude = ['migrations']
+line-length = 82
+extend-exclude = [
+    'migrations',
+    'settings.py',
+    'manage.py'
+]
 
 [tool.ruff.lint]
 preview = true

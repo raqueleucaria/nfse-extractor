@@ -1,4 +1,5 @@
 from django.urls import path
+
 from . import views
 
 app_name = 'extractor'
@@ -8,4 +9,3 @@ urlpatterns = [
     path('api/hello/', views.hello_api, name='hello_api'),
     path('api/extract/', views.extract_api, name='extract_api'),
 ]
-
