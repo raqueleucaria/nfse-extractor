@@ -1,0 +1,53 @@
+docs
+*.sqlite3
+
+# Controle de versão
+.git/
+.gitignore
+.github/
+
+# Caches Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Ambientes virtuais
+.venv/
+venv/
+.env
+
+# Arquivos de desenvolvimento
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Arquivos temporários
+tmp/
+.DS_Store
+
+# Logs
+*.log
+logs/
+
+# Configurações locais
+local_settings.py
+
+# Arquivos Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Arquivos estáticos e de mídia (se gerenciados externamente)
+staticfiles/
+media/
+
+# Arquivos de compilação Python
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
