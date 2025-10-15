@@ -1,0 +1,35 @@
+body {
+    font-family: 'Inter', sans-serif;
+}
+
+.drop-zone {
+    transition: background-color 0.2s ease-in-out, border-color 0.2s ease-in-out;
+}
+.drop-zone--over {
+    background-color: #e9d5ff;
+    border-color: #9333ea;
+}
+
+.loader {
+    border-top-color: #a855f7;
+    animation: spin 1s linear infinite;
+}
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.drop-zone__input {
+    display: none;
+}
+
+.animate-pulse {
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: .5;
+  }
+}
