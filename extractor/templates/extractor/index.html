@@ -1,60 +1,95 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>V360 - Painel de Validação NFSe</title>
-    <!-- Tailwind CSS CDN -->
+    <title>V360 - Extrator de NFSe</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Google Fonts: Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <style>
-        body {
-            font-family: 'Inter', sans-serif;
-        }
-    </style>
+    <link rel="stylesheet" href="{% static 'extractor/css/style.css' %}">
 </head>
 <body class="bg-slate-100 text-slate-800">
     <div class="flex items-center justify-center min-h-screen p-4 sm:p-6">
-        <div class="w-full max-w-4xl bg-white p-6 sm:p-8 rounded-2xl shadow-xl border border-slate-200/80">
-            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 border-b border-slate-200 pb-4 gap-4">
-                 <div class="flex items-center justify-center gap-3">
-                    <h1 class="text-3xl font-extrabold text-slate-900 tracking-tight">
-                        <span class="text-orange-500">V</span><span class="text-purple-700">360</span> 
-                        <span class="font-semibold text-slate-700">NFSe Extractor</span>
-                    </h1>
-                </div>
-                <div class="text-left sm:text-right">
-                    <p class="font-semibold text-slate-700">Status do Projeto</p>
-                    <p class="text-sm text-slate-500">Configuração do Ambiente</p>
-                </div>
+        <div class="w-full max-w-2xl bg-white p-6 sm:p-8 rounded-2xl shadow-xl border border-slate-200/80">
+            <div class="text-center mb-8">
+                <h1 class="text-3xl font-extrabold text-slate-900 tracking-tight">
+                    <span class="text-orange-500">V</span><span class="text-purple-700">360</span>
+                    <span class="font-semibold text-slate-700">NFSe Extractor</span>
+                </h1>
+                <p class="text-slate-500 mt-2">Extraia as informações da sua Nota Fiscal de Serviço.</p>
             </div>
-            <div class="space-y-4">
-                <div class="bg-slate-50/80 p-5 rounded-lg flex justify-between items-center shadow-sm transition-all hover:shadow-md hover:bg-slate-100 cursor-default">
-                    <span class="font-semibold text-slate-700 text-lg">Criar o repositório no GitHub</span>
-                    <div class="bg-green-100 p-1 rounded-full"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="text-green-600"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
+
+            <div id="upload-area">
+                <div id="drop-zone" class="drop-zone border-4 border-dashed border-slate-300 rounded-xl p-8 text-center cursor-pointer hover:border-purple-500 hover:bg-purple-50" data-api-url="{% url 'extractor:extract_api' %}">
+                    <input type="file" id="file-input" class="drop-zone__input" accept=".pdf, image/*">
+                    <div class="flex flex-col items-center justify-center text-slate-500 pointer-events-none">
+                        <svg class="w-16 h-16 mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 16.5V9.75m0 0l-3.75 3.75M12 9.75l3.75 3.75M3 17.25V8.25a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 8.25v9a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 17.25z" /></svg>
+                        <p class="font-semibold">Arraste e solte o arquivo aqui</p>
+                        <p class="text-sm mt-1">ou <span class="text-purple-600 font-bold">clique para selecionar</span></p>
+                        <p class="text-xs text-slate-400 mt-4">Suporta PDF, PNG, JPG, etc.</p>
+                    </div>
                 </div>
-                <div class="bg-slate-50/80 p-5 rounded-lg flex justify-between items-center shadow-sm transition-all hover:shadow-md hover:bg-slate-100 cursor-default">
-                    <span class="font-semibold text-slate-700 text-lg">Pesquisar e escolher bibliotecas/ferramentas</span>
-                    <div class="bg-green-100 p-1 rounded-full"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="text-green-600"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
+                <div id="upload-error" class="hidden mt-4 bg-red-100 text-red-700 p-4 rounded-lg text-center" role="alert"></div>
+            </div>
+
+            <div id="preview-area" class="hidden text-center">
+                <div class="bg-slate-50 p-4 rounded-lg border flex items-center justify-between gap-4">
+                    <div class="flex items-center gap-4 overflow-hidden">
+                        <div id="file-preview-icon" class="w-12 h-12 bg-slate-200 rounded-md flex-shrink-0 flex items-center justify-center">
+                            <svg class="w-7 h-7 text-slate-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" /></svg>
+                        </div>
+                        <div class="text-left">
+                            <p id="file-name" class="font-medium text-slate-700 truncate"></p>
+                            <p id="file-details" class="text-sm text-slate-500"></p>
+                        </div>
+                    </div>
+                    <button id="cancel-btn" class="text-slate-400 hover:text-red-500 transition-colors">
+                        <svg class="w-7 h-7" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                    </button>
                 </div>
-                <div class="bg-slate-50/80 p-5 rounded-lg flex justify-between items-center shadow-sm transition-all hover:shadow-md hover:bg-slate-100 cursor-default">
-                    <span class="font-semibold text-slate-700 text-lg">Definir a linguagem principal</span>
-                    <div class="bg-green-100 p-1 rounded-full"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="text-green-600"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
+                <button id="submit-btn" class="mt-4 w-full bg-purple-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-50 transition-all duration-200 shadow-lg hover:shadow-xl disabled:bg-slate-400 disabled:cursor-not-allowed">
+                    Extrair Dados
+                </button>
+            </div>
+
+            <div id="result-area" class="hidden mt-6">
+                <div id="loading-spinner" class="hidden flex flex-col items-center justify-center p-8">
+                    <div class="loader ease-linear rounded-full border-4 border-t-4 border-slate-200 h-12 w-12 mb-4"></div>
+                    <p class="text-slate-500 font-semibold animate-pulse">Analisando o documento, isso pode levar alguns segundos...</p>
                 </div>
-                <div class="bg-slate-50/80 p-5 rounded-lg flex justify-between items-center shadow-sm transition-all hover:shadow-md hover:bg-slate-100 cursor-default">
-                    <span class="font-semibold text-slate-700 text-lg">Inicializar a estrutura base de diretórios</span>
-                    <div class="bg-green-100 p-1 rounded-full"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="text-green-600"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
+
+                <div id="result-content">
+                    <div id="status-message"></div>
+                    <div id="data-fields" class="space-y-4 mt-4"></div>
+
+                    <div id="json-result-wrapper" class="hidden mt-6 border border-slate-200 rounded-lg">
+                        <div class="flex justify-between items-center px-4 py-2 bg-slate-50 border-b border-slate-200 rounded-t-lg">
+                            <h3 class="text-sm font-semibold text-slate-700">JSON</h3>
+                            <button id="copy-json-btn" title="Copiar JSON" class="text-slate-500 p-1 rounded-md hover:bg-slate-200 hover:text-slate-800 transition-colors">
+                                <svg id="copy-icon" class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                   <path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                </svg>
+                                <svg id="success-icon" class="w-5 h-5 hidden text-green-600" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                                </svg>
+                            </button>
+                        </div>
+                        <pre class="bg-slate-50/50 text-slate-800 p-4 text-sm overflow-x-auto rounded-b-lg"><code></code></pre>
+                    </div>
                 </div>
-                 <div class="bg-slate-50/80 p-5 rounded-lg flex justify-between items-center shadow-sm transition-all hover:shadow-md hover:bg-slate-100 cursor-default">
-                    <span class="font-semibold text-slate-700 text-lg">Hello World com linguagem/tecnologia escolhida</span>
-                    <div class="bg-green-100 p-1 rounded-full"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="text-green-600"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
-                </div>
+
+                <button id="reset-btn" class="hidden mt-6 w-full bg-orange-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-opacity-50 transition-all duration-200 flex items-center justify-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0011.664 0l3.181-3.183m-3.181-3.183l-3.181-3.182a8.25 8.25 0 00-11.664 0l-3.181 3.182" />
+                    </svg>
+                    <span>Extrair Novo Documento</span>
+                </button>
             </div>
         </div>
     </div>
+    <script src="{% static 'extractor/js/main.js' %}"></script>
 </body>
 </html>
-
