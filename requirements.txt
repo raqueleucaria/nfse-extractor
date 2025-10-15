@@ -1,0 +1,12 @@
+Django>=5.2.7,<6.0.0
+pdfplumber>=0.11.7,<0.12.0
+pytesseract>=0.3.13,<0.4.0
+pillow>=11.3.0,<12.0.0
+taskipy>=1.14.1,<2.0.0
+asgiref==3.10.0
+cffi==2.0.0
+charset-normalizer==3.4.4
+cryptography==46.0.2
+pycparser==2.23
+sqlparse==0.5.3
+pdfminer.six==20250506
