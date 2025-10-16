@@ -1,0 +1,4 @@
+{
+  "cnpj_prestador": "22.111./0001-90",
+  "nome_prestador": "EMPRESA FICTÍCIA LTDA DOIS"
+}

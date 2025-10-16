@@ -9,18 +9,17 @@ Os requisitos estão divididos em funcionais (RF) e não funcionais (RNF), com o
 
 | ID    | Descrição                                                                                                 | Implementação        |
 | ----- | --------------------------------------------------------------------------------------------------------- | -------------------- |
-| RF01  | O sistema deve aceitar o upload de arquivos nos formatos PDF e imagem.                                    | -    |
-| RF02  | A solução deve analisar o texto do documento e extrair o CNPJ do prestador (formato `XX.XXX.XXX/XXXX-XX`). | -    |
-| RF03  | A solução deve analisar o texto e extrair a Razão Social do prestador (geralmente próxima a "Nome/Razão Social"). | -    |
-| RF04  | O processo de extração deve lidar com variações comuns no texto, como múltiplos espaços e quebras de linha. | -    |
-| RF05  | A solução deve gerar e exibir uma string no formato JSON contendo as chaves `cnpj_prestador` e `nome_prestador`. | -    |
-| RF06  | (Melhoria) A solução deve permitir a persistência dos dados extraídos, associando-os ao fornecedor e ao mês. | -    |
-| RNF01 | O código-fonte completo deve ser disponibilizado em um repositório no GitHub.                             | -    |
-| RNF02 | O processo de desenvolvimento deve ser organizado em tarefas (GitHub Projects).             | -    |
+| RF01  | O sistema deve aceitar o upload de arquivos nos formatos PDF e imagem.                                    | ✅ |
+| RF02  | A solução deve analisar o texto do documento e extrair o CNPJ do prestador (formato `XX.XXX.XXX/XXXX-XX`). | ✅  |
+| RF03  | A solução deve analisar o texto e extrair a Razão Social do prestador (geralmente próxima a "Nome/Razão Social"). | ✅  |
+| RF04  | O processo de extração deve lidar com variações comuns no texto, como múltiplos espaços e quebras de linha. | ✅ |
+| RF05  | A solução deve gerar e exibir uma string no formato JSON contendo as chaves `cnpj_prestador` e `nome_prestador`. | ✅ |
+| RF06  | (Melhoria) A solução deve permitir a persistência dos dados extraídos, associando-os ao fornecedor e ao mês. |  |
+| RNF01 | O código-fonte completo deve ser disponibilizado em um repositório no GitHub.                             | ✅  |
+| RNF02 | O processo de desenvolvimento deve ser organizado em tarefas (GitHub Projects).             | ✅ |
 | RNF03 | Um vídeo curto demonstrando a usabilidade da aplicação deve ser gravado e compartilhado (Google Drive).    | -    |
-| RNF04 | A solução deve ter testes para garantir a corretude da extração de dados. ([Modelo de nfse](./NFSe_ficticia_layout_completo.pdf))  | -    |
-| RNF05 | Criar funcionalidades de melhoria.  | -    |
-
+| RNF04 | A solução deve ter testes para garantir a corretude da extração de dados. ([Modelo de nfse](./NFSe_ficticia_layout_completo.pdf))  | ✅ |
+| RNF05 | Criar funcionalidades de melhoria.  | Parcial - Algumas melhorias já foram implementadas, como testes automatizados; Melhorar apresentação dos resultados na interface; Botão "Copiar para área de transferência" para o JSON... Porém outras funcionalidades sugeridas no backlog persistência dos dados ainda estão pendentes. |
 
 ## Backlog
 
@@ -75,6 +74,8 @@ Os requisitos estão divididos em funcionais (RF) e não funcionais (RNF), com o
 - Melhorar apresentação dos resultados na interface.
 - Adicionar botão "Copiar para área de transferência" para o JSON.
 - Implementar persistência local (CSV/JSON) para associar fornecedor e mês (atende RF06).
+- Hostagem da aplicação.
+  
 - **Requisitos relacionados**: `RF01`, `RF-05` 
 
 ### Feature 7 — Finalização e Documentação
